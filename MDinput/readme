@@ -1,0 +1,13 @@
+1. minimization job
+ min.in
+2. heating up
+ heat.in
+3. NPT equilibrium run
+  npt_eq_fixed_solute.in
+4. NVT equilibrium run  and canonical sampling 
+  nvt_eq_fixed_solute.in for the first traj labeled with the order of "0"
+  nvt_sampling_fixed_solute.in
+5. NVE relaxation run
+  nve_relax_fixed_solute.in
+6. NVE production run (to get energy trajectory)
+  nve_prod_fixed_solute.in

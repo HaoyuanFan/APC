@@ -1,0 +1,120 @@
+#!/bin/sh
+#SBATCH --job-name=TRIAD
+#SBATCH --output=%j.o
+#SBATCH --error=%j.e
+##SBATCH --mail-type=END
+##SBATCH --mail-user=zl3289@nyu.edu
+#SBATCH --time=2-20:00:00
+#SBATCH --nodes=1
+#SBATCH --mem=100GB
+#SBATCH -p argon
+##SBATCH -w gpu7
+#SBATCH -c 96
+##SBATCH --gres=gpu:1
+#SBATCH --dependency=afterok:20426224
+##SBATCH --constraint=g6230|2630v4
+
+#load amber20z module automatically according to gpu model
+
+
+module purge
+export MODULEPATH=$MODULEPATH:/gpfsnyu/xspace/sungroup/modules
+#if [ "$SLURM_JOB_NODELIST" == "gpu7" ];then
+# for 2080Ti, load avx512_cuda11.02 version
+#module load amber/20z
+#elif [ "$SLURM_JOB_NODELIST" == "gpu6" ];then
+# for P100, load avx2_cuda11.02 version
+#module load amber/20z_avx2
+#elif [ "$SLURM_JOB_NODELIST" == "agpu8" ];then
+# for 2080Ti, load avx512_cuda11.02 version
+#module load amber/20z
+#elif [ "$SLURM_JOB_NODELIST" == "argpu1" ];then
+# for 3080Ti, load avx512_cuda11.02 version
+#module load amber/20gpu
+#else
+# for K10, load avx2_cuda10.2 version
+#module load amber/20z_avx2_cuda10.2
+#fi
+module load amber/22z
+source  /gpfsnyu/xspace/sungroup/software/amber22/amber.sh
+
+SYSTEM=triad_
+ID_NO=conf3
+# where to read production run NVE trajectories
+TRAJDIR=/gpfsnyu/xspace/projects/IMT/MD/7_NVE_prod
+# make temperatory dir
+TEMPDIR=/tmp/${SLURM_JOB_USER}_${SLURM_JOB_ID}
+# where we store our FF files
+TOP_DIR=/gpfsnyu/xspace/projects/IMT/prep_session/MDFF
+DONOR=PI
+REC_DIR=/gpfsnyu/xspace/projects/IMT/MD/8_RECALC
+mkdir -p $REC_DIR
+mkdir -p $TEMPDIR
+cd $TEMPDIR
+# assign 96 cores to this job
+NT=96
+START=1
+STOP=200
+cd 
+for ((j = ${START}; j < ${STOP}; j++))
+do
+echo Starting Energy Recalculation ... `date`
+echo Transporting .mdcrd.nc to a save tempdir ...
+cp $TRAJDIR/${SYSTEM}${ID_NO}_prod_NVE_${j}.mdcrd.nc $TEMPDIR/.
+
+ls
+echo $TRAJDIR/${SYSTEM}${ID_NO}_prod_NVE_${j}.mdcrd.nc
+for CHARGE_STATE in GR PI CT1 CT2
+do
+cat > esander_${CHARGE_STATE}.in <<EOF
+parm ${TOP_DIR}/${ID_NO}_${CHARGE_STATE}.prmtop
+trajin ${TEMPDIR}/${SYSTEM}${ID_NO}_prod_NVE_${j}.mdcrd.nc
+esander ${CHARGE_STATE} out ${SYSTEM}${ID_NO}_REC_${CHARGE_STATE}_${DONOR}_${TRAJ_STATE}_${j}.dat ntb 1 cut 9 ntf 2 ntc 2
+EOF
+#cat esander_${CHARGE_STATE}.in 
+
+mpirun -np ${NT} cpptraj.MPI -i esander_${CHARGE_STATE}.in > esander_${CHARGE_STATE}.out
+
+echo
+#cat esander_${CHARGE_STATE}.out
+
+echo Finished Energy Recalculation on state ${CHARGE_STATE} on `date`
+# We retain only at max 1 big .nc trajectories at a given time
+# end of charge inner loop
+done
+mv *.in *.out *.dat $REC_DIR
+done
+rm -r $TEMPDIR
+echo Finished all Energy Recalculation on `date`
+
+#
+#cd $REC_DIR
+# to extract energy from an esander calculated energies.
+#TRAJ="PI"
+#TRAJ_STATE="NVE"
+#TRAJDIR=$REC_DIR
+#RESULT_ENERGY=/gpfsnyu/xspace/projects/IMT/result/$ID_NO
+#mkdir -p $RESULT_ENERGY
+#for REC in PI CT1 CT2 GR
+#do
+#ENE_TRAJ=$RESULT_ENERGY/$REC
+#mkdir -p $ENE_TRAJ
+#do
+#for i in {1..200..1}
+#do
+#ILENO=$((CASE+i))
+#awk '{print $2}' $TRAJDIR/${SYSTEM}${ID_NO}_REC_${REC}_${TRAJ}_${TRAJ_STATE}_${i}.dat | sed 1d > $ENE_TRAJ/energy_${REC}_${i}.dat
+#done
+#done
+
+# stitch energy trajectories
+#cd $RESULT_ENERGY
+#for i in {1..200..1}
+#do
+#        for REC_STATE in GR PI CT1 CT2
+#        do
+#        #cat energy_${REC_STATE}_TRAJ_${TRAJ_STATE}_${i}.dat >> TRIAD_E_${REC_STATE}_TRAJ_${STATE}_${TRAJ_STATE}.dat
+#        cat  $ENE_TRAJ/energy_${REC_STATE}_${i}.dat >> TRIAD_E_${REC_STATE}_TRAJ_${STATE}_${TRAJ_STATE}.dat
+#        done
+#done
+
