@@ -1,0 +1,18 @@
+source leaprc.protein.ff14SB
+
+source leaprc.DNA.OL15
+
+source leaprc.water.tip3p
+
+source leaprc.gaff2
+
+
+name = loadpdb "1all_4amber.pdb"
+
+solvateBox name SPCBOX 10
+
+savepdb name 1all.neut.pdb
+
+saveamberparm name 1all.prmtop 1all.inpcrd
+
+quit

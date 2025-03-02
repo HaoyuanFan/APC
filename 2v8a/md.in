@@ -1,0 +1,17 @@
+Implicit Membrane Simulation
+ &cntrl
+  imin=0, ntx=1, irest=0,
+  ntpr=1000, ntwx=1000,
+  nstlim=100000, dt=0.002,
+  ntt=3, gamma_ln=2.0,
+  cut=9.0, igb=0, extdiel=80.0,
+  intdiel=1.0,
+  ntb=2, ntp=1,
+  tempi=300.0, temp0=300.0,
+  ntc=2, ntf=2,
+  nmropt = 2,
+  ntr=1,
+  restraint_wt = 100,
+  restraintmask = ':1',
+ /
+
