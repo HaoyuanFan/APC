@@ -3,7 +3,7 @@
 #SBATCH --output=%j.o
 #SBATCH --error=%j.e
 ##SBATCH --mail-type=END
-##SBATCH --mail-user=hf2583nyu.edu
+##SBATCH --mail-user=hf2583@nyu.edu
 #SBATCH --time=2-20:00:00
 #SBATCH --nodes=1
 #SBATCH --mem=100GB
